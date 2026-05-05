@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 import utils
 from utils import make_options, output_cached_video, get_pretrained_clip, get_coords, step_to_nlp
 from const import PICK_TARGETS, PLACE_TARGETS
-from LLM.PromptEngineering import TERMINATION_STRING, GPT3_CONTEXT
+from LLM.PromptEngineering import TERMINATION_STRING, get_processed_context #GPT3_CONTEXT
 from LLM.LLMScoring import gpt3_scoring
-from Configs import LLM_ENGINE, ENV_CONF, RAW_INPUT, MAX_TASKS, MAX_OPTIONS, RPM
+from Configs import LLM_ENGINE, ENV_CONF, RAW_INPUT, MAX_TASKS, RPM
 from PickPlaceEnv import env
 import time
 
@@ -35,8 +35,7 @@ def run():
     _place_targets = {k: None for k in ENV_CONF['place'] if k not in PLACE_TARGETS}
     _place_targets.update(PLACE_TARGETS)
     options = make_options(_pick_targets, _place_targets, termitation_string=TERMINATION_STRING)
-    options = options[:MAX_OPTIONS] 
-    gpt3_prompt = GPT3_CONTEXT + '\n' + RAW_INPUT + '\n'
+    gpt3_prompt = get_processed_context() + '\n# ' + RAW_INPUT + '\n'
     selected_task = ''
     num_tasks = 0
     steps_text = []
@@ -46,15 +45,14 @@ def run():
         if num_tasks > MAX_TASKS:
             break
         time.sleep(60//RPM)  # because of the RPM
-        llm_scores, _ = gpt3_scoring(gpt3_prompt, options, verbose=True, engine=LLM_ENGINE)
-        scores = {option: np.exp(llm_scores[option]) for option in options}
+        scores = gpt3_scoring(gpt3_prompt, options, verbose=True, engine=LLM_ENGINE)
         selected_task = max(scores, key=scores.get)
         steps_text.append(selected_task)
         print(f'{num_tasks} .Selecting: {selected_task}')
         gpt3_prompt += selected_task + '\n'
 
-        all_llm_scores.append(llm_scores)
-    # execute 
+        all_llm_scores.append(scores)
+    # # execute 
     for i, step in enumerate(steps_text):
         if step in {'', TERMINATION_STRING}:
             break

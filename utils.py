@@ -10,17 +10,24 @@ from moviepy.editor import ImageSequenceClip
 import clip
 import numpy as np
 
-def step_to_nlp(step):
+def get_pick_place_from_step(step):
 	step = step.replace('robot.pick_and_place(', '')
 	step = step.replace(')', '')
 	pick, place = step.split(',')
+	return pick, place
+
+def step_to_nlp(step):
+	# step = step.replace('robot.pick_and_place(', '')
+	# step = step.replace(')', '')
+	# pick, place = step.split(',')
+	pick, place = get_pick_place_from_step(step)
 	return f'Pick the {pick} and place it on the {place}.'
 
 
 def make_options(pick_targets, place_targets, options_in_api_form=True, termitation_string='done()'):
 	"""generate all possible options given pick and place targets in the environments"""
 	options = []
-	form_str = 'robot.pick_and_place({},{})' if options_in_api_form else 'Pick the {} and place it on the {}'
+	form_str = 'robot.pick_and_place({}, {})' if options_in_api_form else 'Pick the {} and place it on the {}'
 	for pick in pick_targets:
 		for place in place_targets:
 			options.append(form_str.format(pick, place))
